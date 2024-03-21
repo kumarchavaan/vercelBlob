@@ -10,8 +10,8 @@ export async function middleware(request: NextRequest) {
     let url = request.nextUrl.pathname.substring(2)
     console.log('url',url)
     let bloblist:any = await list();
-    console.log('bloblist',bloblist)
-    let filter = bloblist.filter((blob)=>url == blob.pathname)
+    console.log('bloblist',bloblist.blobs)
+    let filter = bloblist.blobs.filter((blob)=>url == blob.pathname)
     console.log('filter',filter[0])
     if(filter[0]){
         console.log('yupiee')
