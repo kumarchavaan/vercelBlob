@@ -2,146 +2,140 @@
 import { useState, useEffect } from 'react';
 
 export default function Index() {
-  const randomBG = () => {
-    const bgList = [
-      "beach.jpg",
-      "ice.jpg",
-      "tokyo_night.jpg",
-      "mirage.jpg"
-    ]
-    return bgList[Math.floor(Math.random() * bgList.length)];
-  }
-
-  // Update background image every 30s
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Fade in and out
-      document.getElementById("bg").classList.add("opacity-0");
-      setTimeout(() => {
-        document.getElementById("bg").classList.remove("opacity-0");
-      }, 1000);
-
-      document.getElementById("bg").src = randomBG();
-    }, 30000);
-    return () => clearInterval(interval);
+    listblob();
   }, []);
+
+  async function listblob(){
+    let listofblob = await fetch('/api/list',{
+      method: 'GET',
+    });
+    let res = await listofblob.json();
+    setList(res);
+    setMainloading(false);
+    console.log(res);
+  }
 
   const [loading, setLoading] = useState(false);
 
+  const [mainloading, setMainloading] = useState(true);
+
   const [blob, setBlob] = useState(null);
 
-  const [base64, setBase64] = useState(null);
+  const [list, setList] = useState(null);
+
+  const [error, setError] = useState(false);
 
   const handleFileChange = async (event) => {
     event.preventDefault();
 
-    const file = event.target.files[0];
+    const file = event.target[0].files[0];
     if (!file) return;
 
+    setBlob(null)
     setLoading(true);
-    
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    
-    reader.onload = () => {
-      const base64String = reader.result
 
-      setBase64(base64String);
-    };
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    });
-    const blob = await response.json()
-    .catch((error) => {
-      alert('Error: ' + error);
-      window.location.reload();
-    });
-
-    setBlob(blob);
-
-    // Copy URL to clipboard
-    navigator.clipboard.writeText(blob.url);
+    let filter = list.filter((bl)=>bl.pathname === file.name);
+    if(filter[0]){
+      let url = filter[0].url;
+      let res = await fetch('/api/deletelist',{
+        method: 'POST',
+        body: JSON.stringify({url})
+      });
+      res = await res.json();
+      if(res.message == 'file deleted'){
+        uploadfile(file);
+      }else{
+        setError(true);
+        alert('Error: ' + res.message);
+      }
+    }else{
+      uploadfile(file);
+    }
 
     setLoading(false);
   };
 
+  const uploadfile = async (file) => {
+    try{
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const blob = await response.json();
+      setBlob(blob);
+      listblob();
+    }catch(error){
+      setError(true);
+    };
+  }
+
   return (
-    <main className="relative w-screen h-screen text-white bg-black">
-     
+    <main className="relative w-min-screen h-min-screen text-white bg-black flex flex-col gap-y-12">
       <form
         id="form"
         encType="multipart/form-data"
-        className="relative max-w-lg lg:max-w-2xl mx-auto h-screen flex flex-col justify-center space-y-6 z-[2] p-3"
+        className="relative flex flex-col justify-center space-y-6 z-[2] p-3"
+        onSubmit={handleFileChange}
       >
-        <div className="pl-3">
-          <h1 className="text-4xl font-black">Quick Share</h1>
-          <h2 className="text-3xl font-bold">All formats accepted.</h2>
+        <div className='flex flex-col gap-y-6'>
+          <input type="file" name="file" id="file" className="w-auto" />
+          <div className='flex flex-row gap-x-6 align-center'>
+            <button type='submit' className={`w-32 h-10 text-white bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:bg-gradient-to-br dark:focus:ring-blue-800 font-medium rounded-lg text-sm text-center ${loading ? 'pointer-events-none' : ''}`}>Upload</button>
+            <div className="rounded-xl bg-black text-sm font-semibold shadow-sm flex align-center">
+              {(loading && !error && blob == null) && <span>Processing your file, please wait...</span>}
+              {(!loading && !error && blob) && <span>Upload complete</span>}
+              {(!loading && error && blob == null) && <span>Try Again</span>}
+            </div>
+          </div>
         </div>
-
-        <input type="file" name="file" id="file" className="pl-3" onChange={handleFileChange} />
-
-        {
-          !loading && blob ? (
-            <>
-              {/* Remote Preview if it is img / audio / video */}
-              {/* if is image */}
-              {base64 && base64.includes('data:image') && (
-                <img src={blob.url} className="rounded-xl max-h-[50vh] hover:scale-105 transition-all" />
-              )}
-              {/* if is audio */}
-              {base64 && base64.includes('data:audio') && (
-                <audio src={blob.url} controls className="rounded-xl max-h-[50vh] hover:scale-105 transition-all" />
-              )}
-              {/* if is video */}
-              {base64 && base64.includes('data:video') && (
-                <video src={blob.url} controls className="rounded-xl max-h-[50vh] hover:scale-105 transition-all" />
-              )}
-              <div
-                className="rounded-xl bg-black text-sm p-5 font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
-              >
-                Share Preview to friends:
-                <br />
-                <a href={'/preview?q=' + blob.url.replace('https://public.blob.vercel-storage.com/', '')} target="_blank" className="text-xs block text-teal-400 hover:text-teal-600 transition-all">{window.location + 'preview?q=' + blob.url.replace('https://public.blob.vercel-storage.com/', '')}</a>
-                <hr className="relative my-3 opacity-50" />
-                Direct Download / Embed to your website:
-                <br />
-                <a href={blob.url} target="_blank" className="text-xs text-blue-400 hover:text-blue-600 transition-all">{blob.url}</a>
-                <br />
-                <span class="text-xs italic text-gray-600">🎯 Auto copied to your clipboard [Permission required]</span>
-              </div>
-            </>
-          ) : (<>
-            {/* Local Preview if it is img / audio / video */}
-            {/* if is image */}
-            {base64 && base64.includes('data:image') && (
-              <img src={base64} className="rounded-xl hover:scale-105 max-h-[50vh] transition-all" />
-            )}
-            {/* if is audio */}
-            {base64 && base64.includes('data:audio') && (
-              <audio src={base64} controls className="rounded-xl hover:scale-105 max-h-[50vh] transition-all" />
-            )}
-            {/* if is video */}
-            {base64 && base64.includes('data:video') && (
-              <video src={base64} controls className="rounded-xl hover:scale-105 max-h-[50vh] transition-all" />
-            )}
-
-            {loading && (
-              <div className="rounded-xl bg-black text-sm p-5 font-semibold shadow-sm animate-pulse hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600">
-                Processing your file, please wait...
-              </div>
-            )}
-          </>)
-        }
-
       </form>
 
-      <img id="bg" src={ randomBG() } className={`fixed top-0 w-full h-full z-[1] object-cover filter ${base64 ? 'brightness-[0.1]' : 'brightness-50'} duration-1000 transition-all`} />
-    
+      <div className='list w-full h-full p-3'>
+        {mainloading && <div></div>}
+        {!mainloading && <div className="overflow-x-auto bg-black dark:bg-neutral-700">
+          <table className="min-w-full text-left text-sm whitespace-nowrap">
+            <thead className="uppercase tracking-wider border-b-2 dark:border-neutral-600 border-t">
+              <tr>
+                <th scope="col" className="px-6 py-4 border-x dark:border-neutral-600">File Name</th>
+                <th scope="col" className="px-6 py-4 border-x dark:border-neutral-600">URL</th>
+                <th scope="col" className="px-6 py-4 border-x dark:border-neutral-600">Timestamp</th>
+                <th scope="col" className="px-6 py-4 border-x dark:border-neutral-600">Vercel URL</th>
+                <th scope="col" className="px-6 py-4 border-x dark:border-neutral-600">Delete</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list?.map((blob)=>{
+                return <tr className="border-b dark:border-neutral-600" key={blob.url}>
+                  <td className="px-6 py-4 border-x dark:border-neutral-600">{blob.pathname}</td>
+                  <td className="px-6 py-4 border-x dark:border-neutral-600">{''}</td>
+                  <td className="px-6 py-4 border-x dark:border-neutral-600">{blob.uploadedAt}</td>
+                  <td className="px-6 py-4 border-x dark:border-neutral-600">{blob.url}</td>
+                  <td className="px-6 py-4 border-x dark:border-neutral-600">
+                    <button type="button" className="text-white bg-gradient-to-r from-red-400 via-red-500 to-red-600 hover:bg-gradient-to-br font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2" onClick={async(e)=>{
+                      e.currentTarget.classList.add('pointer-events-none')
+                      let url = blob.url;
+                      let res = await fetch('/api/deletelist',{
+                        method: 'POST',
+                        body: JSON.stringify({url})
+                      });
+                      res = await res.json();
+                      if(res.message == 'file deleted'){
+                        listblob();
+                      }else{
+                        e.currentTarget.classList.remove('pointer-events-none')
+                      }
+                    }}>Delete</button>
+                  </td>
+                </tr>
+              })}
+            </tbody>
+          </table>
+        </div>}
+      </div>
     </main>
   );
 }
