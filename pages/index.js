@@ -73,6 +73,10 @@ export default function Index() {
     };
   }
 
+  function getBaseUrl() {
+    return typeof window !== "undefined" ? window.location.origin : "";
+  }
+
   return (
     <main className="relative w-min-screen h-min-screen text-white bg-black flex flex-col gap-y-12">
       <form
@@ -96,8 +100,8 @@ export default function Index() {
 
       <div className='list w-full h-full p-3'>
         {mainloading && <div></div>}
-        {!mainloading && <div className="overflow-x-auto bg-black dark:bg-neutral-700">
-          <table className="min-w-full text-left text-sm whitespace-nowrap">
+        {!mainloading && <div className="w-full overflow-x-auto bg-black dark:bg-neutral-700">
+          <table className="w-full md:w-1/2 text-left text-sm">
             <thead className="uppercase tracking-wider border-b-2 dark:border-neutral-600 border-t">
               <tr>
                 <th scope="col" className="px-6 py-4 border-x dark:border-neutral-600">File Name</th>
@@ -111,7 +115,7 @@ export default function Index() {
               {list?.map((blob)=>{
                 return <tr className="border-b dark:border-neutral-600" key={blob.url}>
                   <td className="px-6 py-4 border-x dark:border-neutral-600">{blob.pathname}</td>
-                  <td className="px-6 py-4 border-x dark:border-neutral-600">{''}</td>
+                  <td className="px-6 py-4 border-x dark:border-neutral-600">{getBaseUrl() + '/@' + blob.pathname}</td>
                   <td className="px-6 py-4 border-x dark:border-neutral-600">{blob.uploadedAt}</td>
                   <td className="px-6 py-4 border-x dark:border-neutral-600">{blob.url}</td>
                   <td className="px-6 py-4 border-x dark:border-neutral-600">
