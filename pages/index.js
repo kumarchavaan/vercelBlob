@@ -77,6 +77,17 @@ export default function Index() {
     return typeof window !== "undefined" ? window.location.origin : "";
   }
 
+  function formatDate(date){
+    return new Date(date).toLocaleDateString('en-US', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: true 
+    });
+  }
+
   return (
     <main className="relative w-min-screen h-min-screen text-white bg-black flex flex-col gap-y-12">
       <form
@@ -116,7 +127,7 @@ export default function Index() {
                 return <tr className="border-b dark:border-neutral-600" key={blob.url}>
                   <td className="px-6 py-4 border-x dark:border-neutral-600">{blob.pathname}</td>
                   <td className="px-6 py-4 border-x dark:border-neutral-600">{getBaseUrl() + '/@' + blob.pathname}</td>
-                  <td className="px-6 py-4 border-x dark:border-neutral-600">{blob.uploadedAt}</td>
+                  <td className="px-6 py-4 border-x dark:border-neutral-600">{formatDate(blob.uploadedAt)}</td>
                   <td className="px-6 py-4 border-x dark:border-neutral-600">{blob.url}</td>
                   <td className="px-6 py-4 border-x dark:border-neutral-600">
                     <button type="button" className="text-white bg-gradient-to-r from-red-400 via-red-500 to-red-600 hover:bg-gradient-to-br font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2" onClick={async(e)=>{
